@@ -112,6 +112,8 @@ def optimal_extract_1d(s2d_file, x1d_file, ax1, ax2, *, optext_width = 8):
         ax1.plot(centroid, color = "black", label = "Centroids")
         ax1.plot(x_vals, g_model(x_vals), color = "red", label = "Gaussian Fit")
         ax1.set_xlabel("Spatial Pixel")
+        ax1.legend()
+        
 
         ## normalize the profile to 1
         centroid_weights = g_model(x_vals) / np.sum(g_model(x_vals))
@@ -132,7 +134,7 @@ def optimal_extract_1d(s2d_file, x1d_file, ax1, ax2, *, optext_width = 8):
         ax2.fill_between(wv, flux_1d - err_1d, flux_1d + err_1d, color = "gray",
                          step = "mid")
 
-        plt.legend()
+        ax2.legend()
         plt.show()
 
     
