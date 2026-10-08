@@ -2,22 +2,59 @@ import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy.modeling import models, fitting 
+from jwst.datamodels import ImageModel
+from astropy.visualization import ImageNormalize, ZScaleInterval
 
-
-def plot_s2d(s2d_file, *, sig = 3):
+def get_extraction_bounds(x1d_file):
     """
-    Input: s2d file path (.fits)
-    
-    """
-    a = fits.open(s2d_file) ## open up file
-    s2d = a[1].data
+    Parameters:
+    ------------
+    x1d_file: auto pipeline extracted x1d file (.fits)
 
-    plt.figure(figsize = [8,3])
-    vmin = np.nanmedian(s2d) - (sig * np.nanstd(s2d))
-    vmax = np.nanmedian(s2d) + (sig * np.nanstd(s2d))
-    plt.imshow(s2d, vmin=vmin, vmax=vmax,
-            origin = "lower", 
-            aspect = "auto")
+    Returns:
+    ------------
+    y1: lower extraction bound (float)
+    y2: upper extraction bound (float)
+
+    """
+    with fits.open(x1d_file) as a:
+        y1 = a['EXTRACT1D'].header['EXTRYSTR'] - 1
+        y2 = a['EXTRACT1D'].header['EXTRYSTP'] 
+
+    return y1, y2
+
+
+
+def plot_s2d(s2d_file, x1d_file):
+    """
+    Parameters:
+    -------------
+    s2d_file: file containing the 2d spec from mast (.fits)
+    x1d_file: auto pipeline extracted x1d file (.fits)
+    """
+    ## open up the s2d file 
+    with fits.open(s2d_file) as a:
+        s2d = a[1].data
+
+    y1,y2 = get_extraction_bounds(x1d_file)
+
+    ## I took this plotting code from pablos notebook, because it makes a nice 2d specta plot 
+    im_model = ImageModel(s2d)
+    full_s2d = im_model.data
+
+    fig = plt.figure(figsize=(20, 3))
+    ax = fig.add_subplot(111)
+    norm = ImageNormalize(full_s2d, interval=ZScaleInterval())
+    ax.imshow(full_s2d, cmap='viridis', norm=norm,
+            origin='lower', interpolation='None',
+            aspect='auto')
+    ax.set_xlabel(r'$\mathrm{Spectral\ pixel}$')
+    ax.set_ylabel(r'$\mathrm{Spatial\ pixel}$')
+    ax.set_title(r'$\mathrm{Full\ 2D\ spectrum}$')
+    ax.axhline(y1, lw=0.5, c='r', label='Initial trace-searching window')
+    ax.axhline(y2, lw=0.5, c='r')
+    plt.legend()
+    plt.show()
 
 def gaussian_model(centroid, y1_optext, y2_optext, optext_width):
 
@@ -39,14 +76,9 @@ def gaussian_model(centroid, y1_optext, y2_optext, optext_width):
 
 def optimal_extract_1d(s2d_file, x1d_file, ax1, ax2, *, optext_width = 8):
     ## grab the expected location of the source using the x1d file 
-    with fits.open(x1d_file) as a:
-        ## pipeline indexing is 1 based instead of 0 based 
-        y1 = a['EXTRACT1D'].header['EXTRYSTR'] - 1
-        y2 = a['EXTRACT1D'].header['EXTRYSTP'] 
-        y1_optext = np.mean([y1,y2]) - optext_width /2
-        y2_optext = y1_optext + optext_width
-
-        print(y1_optext, y2_optext)
+    y1, y2 = get_extraction_bounds(x1d_file) 
+    y1_optext = np.mean([y1,y2]) - optext_width /2
+    y2_optext = y1_optext + optext_width
 
     
     with fits.open(s2d_file) as a:
@@ -77,8 +109,9 @@ def optimal_extract_1d(s2d_file, x1d_file, ax1, ax2, *, optext_width = 8):
 
         x_vals, g_model = gaussian_model(centroid, y1_optext, y2_optext, optext_width)
         
-        ax1.plot(centroid)
-        ax1.plot(x_vals, g_model(x_vals))
+        ax1.plot(centroid, color = "black", label = "Centroids")
+        ax1.plot(x_vals, g_model(x_vals), color = "red", label = "Gaussian Fit")
+        ax1.set_xlabel("Spatial Pixel")
 
         ## normalize the profile to 1
         centroid_weights = g_model(x_vals) / np.sum(g_model(x_vals))
