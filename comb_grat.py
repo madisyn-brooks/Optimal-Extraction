@@ -44,7 +44,7 @@ def load_1d_spec(fits_file):
 
     except u.UnitConversionError:
         raise ValueError(
-            f"Cannot convert {flux_unit} to flux density"
+            f"Cannot convert {fnu_unit} to flux density"
         )
 
     flam = fnu.to(
