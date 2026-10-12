@@ -24,7 +24,6 @@ def get_extraction_bounds(x1d_file):
     return y1, y2
 
 
-
 def plot_s2d(s2d_file, x1d_file):
     """
     Parameters:
@@ -89,7 +88,9 @@ def optimal_extract_1d(s2d_file, x1d_file, ax1, ax2, *, optext_width = 8):
         ## check errors for 0s and set to nan 
         s2d_err[s2d_err == 0] = np.nan
 
-        spatial_profile = np.nanmedian(s2d, axis = 1)
+        ##spatial_profile = np.nanmedian(s2d, axis = 1)
+        spatial_profile = np.nansum(s2d, axis = 1)
+
 
         ## check if spatial profile is nan and replace with negative number 
         where = np.isnan(spatial_profile)
