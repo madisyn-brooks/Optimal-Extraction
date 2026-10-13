@@ -143,6 +143,8 @@ def write_to_fits(wv_total, flux_total, err_total, file_235, file_395, source_id
                 hdu_copy.header['EXTVER'] = 1
                 hdul_out.append(hdu_copy)
 
+    #print(hdul_out)
+
     return hdul_out
 
 
@@ -179,6 +181,7 @@ def combine_filters(file_235, file_395, source_id, *, plot_spec = False):
 
     ## initialize median_diff to nan, incase there is no overlaps between regions
     median_diff = np.nan
+    median_diff_err = np.nan
 
     ## case 1: the files don't overlap at all, can simply concatenate
     if (overlapping_min > overlapping_max):
@@ -224,7 +227,14 @@ def combine_filters(file_235, file_395, source_id, *, plot_spec = False):
         median_235 = np.nanmedian(flux_235_overlap)
         median_395 = np.nanmedian(flux_395_overlap)
         median_diff = median_235 - median_395
-        
+
+        ## standard error on the median 
+        median_235_err = 1.2533 *(np.nanstd(flux_235_overlap) / np.sqrt(len(flux_235_overlap)))
+        median_395_err = 1.2533 *(np.nanstd(flux_395_overlap) / np.sqrt(len(flux_395_overlap)))
+
+        ## error on the difference of the medians 
+        median_diff_err = np.sqrt(median_235_err**2 + median_395_err**2)
+
         for i in range(len(flux_235_on_395)):
             if np.isnan(flux_235_on_395[i]):
                 ## 235 interpolator has no coverage here — use 395 value alone, this covers edge cases 
@@ -277,8 +287,9 @@ def combine_filters(file_235, file_395, source_id, *, plot_spec = False):
         ax2.set_ylabel(r'$f_\nu$', fontsize = 14)
         ax2.legend()
 
+        plt.title(source_id)
         plt.tight_layout()
         #plt.xlim(2.5,3.0)
         plt.show()
 
-    return comb_fits, median_diff
+    return comb_fits, median_diff, median_diff_err
