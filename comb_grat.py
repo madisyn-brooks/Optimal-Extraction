@@ -148,7 +148,7 @@ def write_to_fits(wv_total, flux_total, err_total, file_235, file_395, source_id
     return hdul_out
 
 
-def combine_filters(file_235, file_395, source_id, *, plot_spec = False):
+def combine_filters(file_235, file_395, source_id, background, *, plot_spec = False):
     """
     Parameters:
     --------
@@ -287,9 +287,15 @@ def combine_filters(file_235, file_395, source_id, *, plot_spec = False):
         ax2.set_ylabel(r'$f_\nu$', fontsize = 14)
         ax2.legend()
 
-        plt.title(source_id)
+        fig.suptitle(f"OCEANS-{source_id} {background}", y=0.95)
+        file_name = file_235.replace("f170lp_g235h_", "")
+        file_name = file_name.replace("_initial", "")
+        file_name = file_name.replace(".fits", ".png")
+
         plt.tight_layout()
+        plt.savefig(file_name, dpi = 300, bbox_inches = "tight")
+        plt.close()
         #plt.xlim(2.5,3.0)
-        plt.show()
+        #plt.show()
 
     return comb_fits, median_diff, median_diff_err
